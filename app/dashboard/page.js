@@ -1,23 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { PlusIcon, EyeIcon, DocumentDuplicateIcon, PencilIcon, TrashIcon, InformationCircleIcon, EyeSlashIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from "react";
+import { PlusIcon, EyeIcon, DocumentDuplicateIcon, PencilIcon, TrashIcon, InformationCircleIcon, EyeSlashIcon, CheckIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { createClient } from '@/utils/supabase/client'
 
 // A simple function to generate a random string for the API key.
-const generateApiKey = () => {
-  // This is a simple example. In a real application, use a more secure method.
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'tvly-';
-  for (let i = 0; i < 32; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
+// const generateApiKey = () => {
+//   // This is a simple example. In a real application, use a more secure method.
+//   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+//   let result = 'tvly-';
+//   for (let i = 0; i < 32; i++) {
+//     result += characters.charAt(Math.floor(Math.random() * characters.length));
+//   }
+//   return result;
+// };
 
 export default function Dashboard() {
-  const [apiKeys, setApiKeys] = useState([
-    { name: "default", key: generateApiKey(), usage: 8, createdAt: new Date().toISOString() },
-  ]);
+  const [apiKeys, setApiKeys] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [revealedKeys, setRevealedKeys] = useState({});
@@ -27,14 +26,51 @@ export default function Dashboard() {
   const [editingKeyName, setEditingKeyName] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingKey, setDeletingKey] = useState(null);
+  const [isCreatingKey, setIsCreatingKey] = useState(false);
+  const [isUpdatingKey, setIsUpdatingKey] = useState(false);
+  const [isDeletingKey, setIsDeletingKey] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
-  const handleCreateKey = (e) => {
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('api_keys')
+          .select('*');
+        if (error) {
+          console.error('Error fetching API keys:', error);
+        } else {
+          setApiKeys(data);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApiKeys();
+  }, [supabase]);
+
+  const handleCreateKey = async (e) => {
     e.preventDefault();
     if (newKeyName) {
-      const newKey = { name: newKeyName, key: generateApiKey(), usage: 0, createdAt: new Date().toISOString() };
-      setApiKeys([...apiKeys, newKey]);
-      setRevealedKeys(prev => ({ ...prev, [newKey.key]: true }));
-      closeModal();
+      setIsCreatingKey(true);
+      try {
+        const { data, error } = await supabase
+          .from('api_keys')
+          .insert([{ name: newKeyName }])
+          .select();
+
+        if (error) {
+          console.error('Error creating API key:', error);
+        } else {
+          setApiKeys([...apiKeys, ...data]);
+          setRevealedKeys(prev => ({ ...prev, [data[0].api_key]: true }));
+          closeModal();
+        }
+      } finally {
+        setIsCreatingKey(false);
+      }
     }
   };
 
@@ -70,13 +106,26 @@ export default function Dashboard() {
     setEditingKeyName("");
   };
 
-  const handleUpdateKeyName = (e) => {
+  const handleUpdateKeyName = async (e) => {
     e.preventDefault();
     if (editingKey && editingKeyName) {
-        setApiKeys(apiKeys.map(k => 
-            k.key === editingKey.key ? { ...k, name: editingKeyName } : k
-        ));
-        closeEditModal();
+      setIsUpdatingKey(true);
+      try {
+        const { data, error } = await supabase
+            .from('api_keys')
+            .update({ name: editingKeyName })
+            .eq('id', editingKey.id)
+            .select();
+
+        if (error) {
+            console.error('Error updating API key:', error);
+        } else {
+            setApiKeys(apiKeys.map(k => (k.id === editingKey.id ? data[0] : k)));
+            closeEditModal();
+        }
+      } finally {
+        setIsUpdatingKey(false);
+      }
     }
   };
 
@@ -90,10 +139,24 @@ export default function Dashboard() {
     setDeletingKey(null);
   };
 
-  const handleRevokeKey = () => {
+  const handleRevokeKey = async () => {
     if (deletingKey) {
-        setApiKeys(apiKeys.filter((apiKey) => apiKey.key !== deletingKey.key));
-        closeDeleteModal();
+      setIsDeletingKey(true);
+      try {
+        const { error } = await supabase
+            .from('api_keys')
+            .delete()
+            .eq('id', deletingKey.id);
+
+        if (error) {
+            console.error('Error revoking API key:', error);
+        } else {
+            setApiKeys(apiKeys.filter((apiKey) => apiKey.id !== deletingKey.id));
+            closeDeleteModal();
+        }
+      } finally {
+        setIsDeletingKey(false);
+      }
     }
   };
 
@@ -139,41 +202,59 @@ export default function Dashboard() {
                 </p>
                 
                 <div className="mt-6">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 uppercase">
-                                <tr>
-                                    <th className="p-3 font-medium">Name</th>
-                                    <th className="p-3 font-medium">Usage</th>
-                                    <th className="p-3 font-medium">Key</th>
-                                    <th className="p-3 font-medium">Options</th>
-                                </tr>
-                            </thead>
-                            <tbody className="text-gray-700">
-                                {apiKeys.map(apiKey => (
-                                    <tr key={apiKey.key} className="border-b border-gray-200 last:border-0">
-                                        <td className="p-3 font-medium">{apiKey.name}</td>
-                                        <td className="p-3">{apiKey.usage}</td>
-                                        <td className="p-3 font-mono">
-                                            {revealedKeys[apiKey.key] ? apiKey.key : `${apiKey.key.substring(0, 5)}********************************`}
-                                        </td>
-                                        <td className="p-3">
-                                            <div className="flex items-center gap-4">
-                                                <button onClick={() => toggleKeyVisibility(apiKey.key)} className="text-gray-500 hover:text-gray-800">
-                                                    {revealedKeys[apiKey.key] ? <EyeSlashIcon className="w-5 h-5"/> : <EyeIcon className="w-5 h-5"/>}
-                                                </button>
-                                                <button onClick={() => handleCopyKey(apiKey.key)} className="text-gray-500 hover:text-gray-800">
-                                                    {copiedKey === apiKey.key ? <CheckIcon className="w-5 h-5 text-green-500"/> : <DocumentDuplicateIcon className="w-5 h-5"/>}
-                                                </button>
-                                                <button onClick={() => openEditModal(apiKey)} className="text-gray-500 hover:text-gray-800"><PencilIcon className="w-5 h-5"/></button>
-                                                <button onClick={() => openDeleteModal(apiKey)} className="text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
-                                            </div>
-                                        </td>
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-10">
+                            <ArrowPathIcon className="w-6 h-6 text-gray-500 animate-spin" />
+                            <p className="ml-3 text-gray-500">Loading API keys...</p>
+                        </div>
+                    ) : apiKeys.length === 0 ? (
+                        <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+                            <h4 className="text-lg font-semibold text-gray-700">No API keys yet</h4>
+                            <p className="mt-2 text-sm text-gray-500">Get started by creating your first API key.</p>
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                            >
+                                Create API Key
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm text-left">
+                                <thead className="text-xs text-gray-500 uppercase">
+                                    <tr>
+                                        <th className="p-3 font-medium">Name</th>
+                                        <th className="p-3 font-medium">Usage</th>
+                                        <th className="p-3 font-medium">Key</th>
+                                        <th className="p-3 font-medium">Options</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="text-gray-700">
+                                    {apiKeys.map(apiKey => (
+                                        <tr key={apiKey.id} className="border-b border-gray-200 last:border-0">
+                                            <td className="p-3 font-medium">{apiKey.name}</td>
+                                            <td className="p-3">{apiKey.usage}</td>
+                                            <td className="p-3 font-mono">
+                                                {revealedKeys[apiKey.api_key] ? apiKey.api_key : `${apiKey.api_key.substring(0, 5)}********************************`}
+                                            </td>
+                                            <td className="p-3">
+                                                <div className="flex items-center gap-4">
+                                                    <button onClick={() => toggleKeyVisibility(apiKey.api_key)} className="text-gray-500 hover:text-gray-800">
+                                                        {revealedKeys[apiKey.api_key] ? <EyeSlashIcon className="w-5 h-5"/> : <EyeIcon className="w-5 h-5"/>}
+                                                    </button>
+                                                    <button onClick={() => handleCopyKey(apiKey.api_key)} className="text-gray-500 hover:text-gray-800">
+                                                        {copiedKey === apiKey.api_key ? <CheckIcon className="w-5 h-5 text-green-500"/> : <DocumentDuplicateIcon className="w-5 h-5"/>}
+                                                    </button>
+                                                    <button onClick={() => openEditModal(apiKey)} className="text-gray-500 hover:text-gray-800"><PencilIcon className="w-5 h-5"/></button>
+                                                    <button onClick={() => openDeleteModal(apiKey)} className="text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -215,7 +296,10 @@ export default function Dashboard() {
 
                         <div className="mt-8 flex justify-end gap-4">
                             <button type="button" onClick={closeModal} className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">Cancel</button>
-                            <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition">Create</button>
+                            <button type="submit" disabled={isCreatingKey} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isCreatingKey && <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />}
+                                {isCreatingKey ? 'Creating...' : 'Create'}
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -243,7 +327,10 @@ export default function Dashboard() {
 
                         <div className="mt-8 flex justify-end gap-4">
                             <button type="button" onClick={closeEditModal} className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">Cancel</button>
-                            <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition">Save Changes</button>
+                            <button type="submit" disabled={isUpdatingKey} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isUpdatingKey && <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />}
+                                {isUpdatingKey ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -266,8 +353,9 @@ export default function Dashboard() {
                         <button type="button" onClick={closeDeleteModal} className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition">
                             Cancel
                         </button>
-                        <button type="button" onClick={handleRevokeKey} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition">
-                            Revoke
+                        <button type="button" onClick={handleRevokeKey} disabled={isDeletingKey} className="px-6 py-2.5 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isDeletingKey && <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />}
+                            {isDeletingKey ? 'Revoking...' : 'Revoke'}
                         </button>
                     </div>
                 </div>
