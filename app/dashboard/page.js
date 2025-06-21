@@ -292,7 +292,7 @@ export default function Dashboard() {
                             />
                         </div>
                         
-                        <p className="text-xs text-gray-500 mt-4">* If the combined usage of all your keys exceeds your plan's limit, all requests will be rejected.</p>
+                        <p className="text-xs text-gray-500 mt-4">* If the combined usage of all your keys exceeds your plan&apos;s limit, all requests will be rejected.</p>
 
                         <div className="mt-8 flex justify-end gap-4">
                             <button type="button" onClick={closeModal} className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition">Cancel</button>
