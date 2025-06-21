@@ -60,21 +60,33 @@ export const apiKeyService = {
   },
 
   async validateApiKey(apiKey) {
-    const { data, error } = await supabase
-      .from('api_keys')
-      .select('id, name')
-      .eq('api_key', apiKey)
-      .single();
+    try {
+      const response = await fetch('/api/validate-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ apiKey }),
+      });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows returned - key not found
-        return { isValid: false, key: null };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      return {
+        isValid: result.isValid,
+        key: result.key,
+        error: result.isValid ? null : result.message
+      };
+    } catch (error) {
       console.error('Error validating API key:', error);
       throw error;
     }
-
-    return { isValid: true, key: data };
   }
 }; 
