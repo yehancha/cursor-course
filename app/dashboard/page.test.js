@@ -111,6 +111,16 @@ describe('Dashboard - API Key Management (Basic CRUD)', () => {
       expect(newKeyCells.length).toBe(1);
       expect(newKeyCells[0]).toBeInTheDocument();
     });
+    
+    // Check that the new key is hidden by default (should show masked key)
+    const rows = screen.getAllByRole('row');
+    const newKeyRow = rows[rows.length - 1]; // Last row should be the new key
+    const keyCell = newKeyRow.querySelector('td:nth-child(3)'); // Third column is the key
+    expect(keyCell.textContent).toMatch(/^tvly-\*{32}$/);
+    
+    // Verify the eye icon shows the key is hidden (EyeIcon, not EyeSlashIcon)
+    const eyeButton = newKeyRow.querySelector('button:first-child');
+    expect(eyeButton).toBeInTheDocument();
   });
 
   it('should update an existing API key and reflect the update in the list', async () => {

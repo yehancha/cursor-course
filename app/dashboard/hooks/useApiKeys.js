@@ -42,7 +42,7 @@ export function useApiKeys() {
       try {
         const newKey = await apiKeyService.createApiKey(newKeyName);
         setApiKeys([...apiKeys, newKey]);
-        setRevealedKeys(prev => ({ ...prev, [newKey.api_key]: true }));
+        setRevealedKeys(prev => ({ ...prev, [newKey.api_key]: false }));
         closeModal();
       } catch (error) {
         // Handle error - could add error state here
