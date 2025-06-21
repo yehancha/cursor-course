@@ -1,0 +1,48 @@
+# Cursor Rules
+
+## Component Architecture
+
+### Large Pages
+- Always break down large pages into smaller, reusable components
+- Use separate files for each component in a `components/` directory
+- Follow the pattern: `app/[page]/components/ComponentName.js`
+
+### Custom Hooks
+- Create custom hooks for complex state management and business logic
+- Use separate files for hooks in a `hooks/` directory
+- Follow the pattern: `app/[page]/hooks/useHookName.js`
+- Keep hooks focused on a single responsibility
+
+### File Structure
+```
+app/[page]/
+├── page.js (main page component)
+├── components/
+│   ├── Component1.js
+│   ├── Component2.js
+│   └── Component3.js
+└── hooks/
+    └── useCustomHook.js
+```
+
+### Component Guidelines
+- Keep components small and focused on a single responsibility
+- Use descriptive prop names
+- Pass only necessary props to components
+- Use TypeScript-style prop documentation in comments
+
+### Hook Guidelines
+- Keep hooks focused on a single domain/feature
+- Return only necessary state and functions
+- Handle loading states and error states
+- Use descriptive function names
+
+### Examples
+- Dashboard: `app/dashboard/` with `useApiKeys` hook and multiple components
+- Playground: `app/playground/` with `usePlayground` hook and validation components
+
+## Code Style
+- Use consistent naming conventions
+- Follow existing patterns in the codebase
+- Use Tailwind CSS for styling
+- Keep components and hooks in separate files 

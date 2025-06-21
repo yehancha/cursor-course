@@ -57,5 +57,24 @@ export const apiKeyService = {
     }
 
     return true;
+  },
+
+  async validateApiKey(apiKey) {
+    const { data, error } = await supabase
+      .from('api_keys')
+      .select('id, name')
+      .eq('api_key', apiKey)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned - key not found
+        return { isValid: false, key: null };
+      }
+      console.error('Error validating API key:', error);
+      throw error;
+    }
+
+    return { isValid: true, key: data };
   }
 }; 

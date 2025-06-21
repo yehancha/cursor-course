@@ -21,10 +21,10 @@ sidebarItems
 =
  
 [
-  { name: 'Overview', href: '#', icon: HomeIcon, current: true },
+  { name: 'Overview', href: '/dashboard', icon: HomeIcon, current: true },
   { name: 'Research Assistant', href: '#', icon: SparklesIcon, current: false },
   { name: 'Research Reports', href: '#', icon: DocumentTextIcon, current: false },
-  { name: 'API Playground', href: '#', icon: CodeBracketIcon, current: false },
+  { name: 'API Playground', href: '/playground', icon: CodeBracketIcon, current: false },
   { name: 'Invoices', href: '#', icon: CurrencyDollarIcon, current: false },
   { name: 'Documentation', href: '#', icon: DocumentDuplicateIcon, current: false, external: true },
 ];
